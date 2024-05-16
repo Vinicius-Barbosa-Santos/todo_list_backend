@@ -33,6 +33,24 @@ app.post('/tasks', async (request, response) => {
     }
 })
 
+app.delete('/tasks/:id', async (request, response) => {
+    try {
+        const { id } = request.params
+
+        const taskToDelete = await TaskModel.findById(id)
+
+        if(!taskToDelete) {
+            return response.status(500).send("Essa Tarefa não foi encontrada!")
+        }
+
+        const deletedTask = await TaskModel.findByIdAndDelete(id)
+
+        response.status(200).send(deletedTask)
+    } catch (err) {
+        response.status(500).send(err)
+    }
+})
+
 const PORT = 3000
 
 app.listen(3000, () => console.log(`Server is listening on ${PORT}`))
