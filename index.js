@@ -27,7 +27,7 @@ app.get('/tasks/:id', async (request, response) => {
 
         const task = await TaskModel.findById(id)
 
-        if(!task) {
+        if (!task) {
             response.status(404).send('Essa tarefa não foi encontrada!')
         }
 
@@ -44,6 +44,32 @@ app.post('/tasks', async (request, response) => {
         await newTask.save()
 
         response.status(201).send(newTask)
+    } catch (err) {
+        response.status(500).send(err)
+    }
+})
+
+app.patch('/tasks/:id', async (request, response) => {
+    try {
+        const { id } = request.params
+        const taskData = request.body
+
+        const taskToUpdate = await TaskModel.findById(id)
+
+        const allowedUpdates = ['isCompleted']
+        const requestedUpdates = Object.keys(taskData)
+
+        for (update of requestedUpdates) {
+            if(allowedUpdates.includes(update)) {
+                taskToUpdate[update] = taskData[update]
+            } else {
+                return response.status(500).send('Um ou mais campos não são editáveis')
+            }
+        }
+
+        await taskToUpdate.save()
+        return response.status(200).send(taskToUpdate)
+
     } catch (err) {
         response.status(500).send(err)
     }
