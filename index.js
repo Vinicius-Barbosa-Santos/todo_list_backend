@@ -21,6 +21,22 @@ app.get('/tasks', async (request, response) => {
     }
 })
 
+app.get('/tasks/:id', async (request, response) => {
+    try {
+        const { id } = request.params
+
+        const task = await TaskModel.findById(id)
+
+        if(!task) {
+            response.status(404).send('Essa tarefa não foi encontrada!')
+        }
+
+        response.status(200).send(task)
+    } catch (err) {
+        response.status(500).send(err)
+    }
+})
+
 app.post('/tasks', async (request, response) => {
     try {
         const newTask = new TaskModel(request.body)
@@ -39,8 +55,8 @@ app.delete('/tasks/:id', async (request, response) => {
 
         const taskToDelete = await TaskModel.findById(id)
 
-        if(!taskToDelete) {
-            return response.status(500).send("Essa Tarefa não foi encontrada!")
+        if (!taskToDelete) {
+            return response.status(404).send("Essa Tarefa não foi encontrada!")
         }
 
         const deletedTask = await TaskModel.findByIdAndDelete(id)
