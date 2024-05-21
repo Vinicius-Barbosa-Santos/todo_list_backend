@@ -1,5 +1,8 @@
 const TaskModel = require('../models/task.model')
 
+const { notFoundError, objectIdCastError } = require('../errors/mongodb.errors');
+const { default: mongoose } = require('mongoose');
+
 class TaskController {
     constructor(request, response) {
         this.request = request;
@@ -21,12 +24,14 @@ class TaskController {
 
             const task = await TaskModel.findById(id)
 
-            if (!task) {
-                this.response.status(404).send('Essa tarefa não foi encontrada!')
-            }
+            if (!task) return notFoundError(this.response)
 
             this.response.status(200).send(task)
         } catch (err) {
+            if(err instanceof mongoose.Error.CastError) {
+                return objectIdCastError(this.response)
+            }
+
             this.response.status(500).send(err)
         }
     }
@@ -50,6 +55,10 @@ class TaskController {
 
             const taskToUpdate = await TaskModel.findById(id)
 
+            if (!taskToUpdate) {
+                return notFoundError(this.response)
+            }
+
             const allowedUpdates = ['isCompleted']
             const requestedUpdates = Object.keys(taskData)
 
@@ -65,6 +74,10 @@ class TaskController {
             return this.response.status(200).send(taskToUpdate)
 
         } catch (err) {
+            if(err instanceof mongoose.Error.CastError) {
+                return objectIdCastError(this.response)
+            }
+
             this.response.status(500).send(err)
         }
     }
@@ -76,7 +89,7 @@ class TaskController {
             const taskToDelete = await TaskModel.findById(id)
 
             if (!taskToDelete) {
-                return this.response.status(404).send("Essa Tarefa não foi encontrada!")
+                return notFoundError(this.response)
             }
 
             const deletedTask = await TaskModel.findByIdAndDelete(id)
