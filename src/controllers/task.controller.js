@@ -1,62 +1,68 @@
+const AppError = require('../utils/app.errors')
 const TaskModel = require('../models/task.model')
 
-const { notFoundError, objectIdCastError } = require('../errors/mongodb.errors');
-const { default: mongoose } = require('mongoose');
-
 class TaskController {
-    constructor(request, response) {
-        this.request = request;
-        this.response = response;
-    }
-
-    async getAll() {
+    async create(request, response) {
         try {
-            const tasks = await TaskModel.find({})
-            this.response.status(200).send(tasks)
-        } catch (err) {
-            this.response.status(500).send(err)
-        }
-    }
-
-    async getTasksById() {
-        try {
-            const { id } = this.request.params
-
-            const task = await TaskModel.findById(id)
-
-            if (!task) return notFoundError(this.response)
-
-            this.response.status(200).send(task)
-        } catch (err) {
-            if(err instanceof mongoose.Error.CastError) {
-                return objectIdCastError(this.response)
-            }
-
-            this.response.status(500).send(err)
-        }
-    }
-
-    async create() {
-        try {
-            const newTask = new TaskModel(this.request.body)
+            const newTask = await TaskModel(request.body)
 
             await newTask.save()
 
-            this.response.status(201).send(newTask)
+            return response.status(201).send(newTask)
         } catch (err) {
-            this.response.status(500).send(err)
+            throw new AppError('Erro do Servidor')
         }
     }
 
-    async update() {
+    async getAll(request, response) {
         try {
-            const { id } = this.request.params
-            const taskData = this.request.body
+            const getTasks = await TaskModel.find({})
+
+            return response.status(200).send(getTasks)
+        } catch (err) {
+            throw new AppError('Erro do Servidor')
+        }
+    }
+
+    async getById(request, response) {
+        const { id } = request.params
+
+        const taskById = await TaskModel.findById(id)
+
+        if (!taskById) {
+             throw new AppError('Não achou o item!')
+        }
+
+        return response.send(taskById)
+    }
+
+    async delete(request, response) {
+        try {
+            const { id } = request.params
+
+            const taskToDelete = await TaskModel.findById(id)
+
+            if (!taskToDelete) {
+                 throw new AppError('Não achou o item!')
+            }
+
+            const deleteTask = await TaskModel.findByIdAndDelete(taskToDelete)
+
+            return response.status(200).send(deleteTask)
+        } catch (err) {
+            throw new AppError('Erro do Servidor')
+        }
+    }
+
+    async update(request, response) {
+        try {
+            const { id } = request.params
+            const taskData = request.body
 
             const taskToUpdate = await TaskModel.findById(id)
 
             if (!taskToUpdate) {
-                return notFoundError(this.response)
+                throw new AppError('Erro do Servidor')
             }
 
             const allowedUpdates = ['isCompleted']
@@ -66,37 +72,14 @@ class TaskController {
                 if (allowedUpdates.includes(update)) {
                     taskToUpdate[update] = taskData[update]
                 } else {
-                    return this.response.status(500).send('Um ou mais campos não são editáveis')
+                    throw new AppError('Um ou mais campos não são editáveis')
                 }
             }
 
             await taskToUpdate.save()
-            return this.response.status(200).send(taskToUpdate)
-
+            return response.status(200).send(taskToUpdate)
         } catch (err) {
-            if(err instanceof mongoose.Error.CastError) {
-                return objectIdCastError(this.response)
-            }
-
-            this.response.status(500).send(err)
-        }
-    }
-
-    async delete() {
-        try {
-            const { id } = this.request.params
-
-            const taskToDelete = await TaskModel.findById(id)
-
-            if (!taskToDelete) {
-                return notFoundError(this.response)
-            }
-
-            const deletedTask = await TaskModel.findByIdAndDelete(id)
-
-            this.response.status(200).send(deletedTask)
-        } catch (err) {
-            this.response.status(500).send(err)
+            throw new AppError('Erro do Servidor')
         }
     }
 }
